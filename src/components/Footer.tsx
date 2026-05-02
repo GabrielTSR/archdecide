@@ -7,7 +7,7 @@ export default function Footer() {
       color: 'var(--muted)',
       fontFamily: "'DM Mono', monospace",
     }}>
-      Gabriel Tavares Silva Rocha · MBA em Engenharia de Software · MBA USP ESALQ · 2026 · Orientador: Prof. Dr. Eduardo Fernando Mendes · Dados de infra: Azure Pricing Calculator (abr/2026)
+      Gabriel Tavares Silva Rocha · MBA em Engenharia de Software · MBA USP ESALQ · 2026 · Orientador: Prof. Dr. Eduardo Fernando Mendes
     </div>
   )
 }
