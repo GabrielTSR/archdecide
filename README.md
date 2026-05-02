@@ -1,4 +1,4 @@
-# ArchDecide — Architecture Decision Support System
+# ArchDecide: Architecture Decision Support System
 
 An interactive tool built as part of an MBA thesis at USP ESALQ (Software Engineering). It models the total cost of ownership (TCO) for three architectural styles — **Monolith**, **Serverless**, and **Microservices** — combining real cloud infrastructure pricing with a parametric engineering cost model.
 
