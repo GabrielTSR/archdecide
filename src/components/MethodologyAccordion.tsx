@@ -222,7 +222,7 @@ Cálculo:
                   className="btn-reset"
                   style={{ marginLeft: 'auto', marginBottom: 0 }}
                   onClick={() => {
-                    onApply({ rps: 80, teamComposition: { junior: 1, pleno: 0, senior: 0 } })
+                    onApply({ rps: 80, teamComposition: { junior: 0, pleno: 3, senior: 0 } })
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
                 >
@@ -231,31 +231,40 @@ Cálculo:
               )}
             </div>
             <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
-              Desenvolvedor solo com tráfego moderado (80 req/s). A infraestrutura gerenciada do serverless
-              custa $1.013/mês a menos que o monolito nessa faixa de RPS. Esse ganho supera o overhead
-              de engenharia serverless ($100/mês extra). Contexto: tráfego variável ou de pico pontual.
-              Em carga constante e muito alta, o plano de consumo se torna inviável e o plano premium
-              reduz ou elimina essa vantagem.
+              Startup com 3 plenos e tráfego médio consolidado. A economia de infraestrutura
+              do serverless ($1.013/mês) supera o overhead de engenharia ($600/mês), resultando
+              no menor custo total dentro do modelo.
+            </p>
+            <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
+              <strong>Limitação importante:</strong> este modelo usa RPS fixo, o que subestima
+              a vantagem real do serverless. Na prática, serverless é escolhido principalmente
+              por tráfego variável ou sazonal: sistemas com picos pontuais e tráfego próximo
+              de zero fora do horário de negócio pagam apenas pelo que consomem, enquanto o
+              monolito mantém instâncias ociosas. Essa economia não aparece no modelo, que
+              compara custos com carga constante. Além disso, a eliminação de overhead operacional
+              (sem Kubernetes, sem DevOps dedicado) é um argumento frequente no mercado que
+              também está fora do espaço modelado.
             </p>
             <pre className="formula">{`Inputs utilizados:
   RPS: 80  (âncora médio porte)
-  Equipe: 1 junior
+  Equipe: 3 plenos
   Custo por dev júnior: $1.200/mês
-  Fator de senioridade: júnior = 1,0
+  Fator de senioridade: pleno = 2,0
   Limiar de equipe para micro: 5 devs
   Fatores de complexidade: mono 1,0  /  srv 1,3  /  micro 2,0
   Fatores de produtividade: mono 1,0  /  srv 1,2  /  micro 2,5
 
 Cálculo:
-  Base da equipe = 1 × $1.200 × 1,0 = $1.200/mês
-  Produtividade efetiva (micro): 1 dev = piso de 0,80 (abaixo do limiar)
-                                 ratio = 2,0 / 0,80 = 2,500
+  Base da equipe = 3 × $1.200 × 2,0 = $7.200/mês
+  Produtividade efetiva (micro): t=(3−1)/(5−1)=0,50
+                                 pf = 0,80 + 0,50×(2,5−0,80) = 1,650
+                                 ratio = 2,0 / 1,650 = 1,212
 
   Arquitetura       Infra             Engenharia       Total/mês
   ──────────────────────────────────────────────────────────────
-  Serverless      $    125   +   $  1.300   =   $  1.425   << MENOR CUSTO
-  Monolito        $  1.138   +   $  1.200   =   $  2.338
-  Microsserviços  $  1.498   +   $  3.000   =   $  4.498   [ratio efetivo 2,500]`}</pre>
+  Serverless      $    125   +   $  7.800   =   $  7.925   << MENOR CUSTO
+  Monolito        $  1.138   +   $  7.200   =   $  8.338
+  Microsserviços  $  1.498   +   $  8.727   =   $ 10.225   [ratio efetivo 1,212]`}</pre>
           </div>
 
           {/* Cenário 3: Microsserviços */}
