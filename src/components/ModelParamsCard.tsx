@@ -17,7 +17,7 @@ export default function ModelParamsCard({ state, onUpdate, onReset }: Props) {
       <div className="callout" style={{ marginTop: 0 }}>
         Estes fatores <strong>não possuem valores universais na literatura de engenharia de software</strong>.
         Os defaults representam uma configuração inicial baseada em raciocínio qualitativo sobre complexidade
-        relativa das arquiteturas (análogo a <em>effort multipliers</em> do COCOMO II — Boehm et al., 2000)
+        relativa das arquiteturas (análogo a <em>effort multipliers</em> do COCOMO II, Boehm et al. 2000)
         e diferenças de produtividade de equipes distribuídas (Lei de Conway; Brook&apos;s Law).{' '}
         <strong>Ajuste conforme o contexto da sua equipe.</strong>
       </div>
@@ -97,16 +97,17 @@ export default function ModelParamsCard({ state, onUpdate, onReset }: Props) {
 
       </div>
 
-      {/* Limiar de equipe para microsserviços */}
+      {/* Limiar de equipe para microsserviços e serverless */}
       <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '.5px dashed var(--border)' }}>
-        <div className="params-title">Equipe mínima para microsserviços (Lei de Conway)</div>
+        <div className="params-title">Equipe mínima por arquitetura (Lei de Conway)</div>
         <p className="hint" style={{ marginBottom: '.75rem' }}>
-          Abaixo deste número de desenvolvedores, o fator de produtividade de microsserviços é reduzido
-          gradualmente até 0,80 — equipes pequenas não formam times independentes suficientes para colher
-          o benefício de paralelismo. Acima do limiar, o fator configurado é aplicado integralmente.
+          Um time stream-aligned (Skelton &amp; Pais, 2019) precisa de pelo menos este número de devs.
+          Abaixo dele, microsserviços perde produtividade (sem times independentes suficientes) e
+          serverless <strong>ganha</strong> produtividade (menos infra dedicada para administrar por dev).
+          Acima dele, o fator de produtividade de serverless configurado é aplicado integralmente.
         </p>
         <div className="param-row">
-          <span className="param-lbl">Limiar</span>
+          <span className="param-lbl">Limiar (N_min)</span>
           <input
             type="range"
             min="2" max="15" step="1"
@@ -114,6 +115,40 @@ export default function ModelParamsCard({ state, onUpdate, onReset }: Props) {
             onChange={e => onUpdate({ microMinTeam: parseInt(e.target.value) })}
           />
           <span className="param-val">{state.microMinTeam} devs</span>
+        </div>
+
+        <p className="hint" style={{ margin: '.75rem 0' }}>
+          Microsserviços só entrega o fator de produtividade configurado integralmente quando a equipe
+          atinge um múltiplo do limiar acima: uma equipe de exatamente N_min pessoas forma só um time,
+          e o ganho de paralelismo exige times independentes múltiplos.
+        </p>
+        <div className="param-row">
+          <span className="param-lbl">Múltiplo p/ benefício pleno</span>
+          <input
+            type="range"
+            min="1" max="4" step="0.5"
+            value={state.microFullBenefitMultiplier}
+            onChange={e => onUpdate({ microFullBenefitMultiplier: parseFloat(e.target.value) })}
+          />
+          <span className="param-val">
+            {state.microFullBenefitMultiplier.toFixed(1)}× ({Math.round(state.microMinTeam * state.microFullBenefitMultiplier)} devs)
+          </span>
+        </div>
+
+        <p className="hint" style={{ margin: '.75rem 0' }}>
+          Produtividade de serverless para uma equipe de 1 dev (decai linearmente até o valor configurado
+          no limiar N_min). Reflete que eliminar a operação de infraestrutura vale mais quando não há
+          ninguém "sobrando" na equipe para cuidar disso (Roberts &amp; Chapin, 2020).
+        </p>
+        <div className="param-row">
+          <span className="param-lbl">Produtividade máx. serverless</span>
+          <input
+            type="range"
+            min="1.2" max="3.0" step="0.1"
+            value={state.srvProdMaxSmallTeam}
+            onChange={e => onUpdate({ srvProdMaxSmallTeam: parseFloat(e.target.value) })}
+          />
+          <span className="param-val">{state.srvProdMaxSmallTeam.toFixed(1)}×</span>
         </div>
       </div>
 
