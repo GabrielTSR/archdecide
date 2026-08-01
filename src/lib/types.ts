@@ -31,6 +31,8 @@ export interface AppState {
   complexityFactor: ArchFactors
   productivityFactor: ArchFactors
   microMinTeam: number
+  microFullBenefitMultiplier: number
+  srvProdMaxSmallTeam: number
   projectionMonths: number
   velocityRampMonths: ArchFactors
 }

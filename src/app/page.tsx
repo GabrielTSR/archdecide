@@ -9,6 +9,8 @@ import {
   DEFAULT_COMPLEXITY_FACTOR,
   DEFAULT_PRODUCTIVITY_FACTOR,
   DEFAULT_MICRO_MIN_TEAM,
+  DEFAULT_MICRO_FULL_BENEFIT_MULTIPLIER,
+  DEFAULT_SRV_PROD_MAX_SMALL_TEAM,
   DEFAULT_GROWTH_KEY,
   DEFAULT_RPS_SLIDER,
   DEFAULT_PROJECTION_MONTHS,
@@ -37,6 +39,8 @@ const DEFAULT_STATE: AppState = {
   complexityFactor: { ...DEFAULT_COMPLEXITY_FACTOR },
   productivityFactor: { ...DEFAULT_PRODUCTIVITY_FACTOR },
   microMinTeam:         DEFAULT_MICRO_MIN_TEAM,
+  microFullBenefitMultiplier: DEFAULT_MICRO_FULL_BENEFIT_MULTIPLIER,
+  srvProdMaxSmallTeam:  DEFAULT_SRV_PROD_MAX_SMALL_TEAM,
   projectionMonths:     DEFAULT_PROJECTION_MONTHS,
   velocityRampMonths:   { ...VELOCITY_RAMP_MONTHS },
 }
@@ -57,6 +61,8 @@ export default function Home() {
       complexityFactor:   { ...DEFAULT_COMPLEXITY_FACTOR },
       productivityFactor: { ...DEFAULT_PRODUCTIVITY_FACTOR },
       microMinTeam:       DEFAULT_MICRO_MIN_TEAM,
+      microFullBenefitMultiplier: DEFAULT_MICRO_FULL_BENEFIT_MULTIPLIER,
+      srvProdMaxSmallTeam: DEFAULT_SRV_PROD_MAX_SMALL_TEAM,
       velocityRampMonths: { ...VELOCITY_RAMP_MONTHS },
     }))
   }, [])

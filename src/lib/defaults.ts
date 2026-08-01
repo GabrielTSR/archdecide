@@ -100,6 +100,29 @@ export const DEFAULT_MICRO_MIN_TEAM = 5
 // (cognitive load extrema, sem ganho de paralelismo possível).
 export const MICRO_SMALL_TEAM_PENALTY = 0.8
 
+// ── Limiar de benefício pleno de microsserviços ───────────────────────────────
+// O fator de produtividade configurado só é aplicado integralmente quando a
+// equipe atinge microMinTeam × este multiplicador (padrão: 2× → 10 devs).
+// Fundamentação: uma equipe de exatamente microMinTeam pessoas forma apenas
+// UM time stream-aligned (Skelton & Pais, 2019). O ganho de paralelismo de
+// microsserviços — a razão de ser da arquitetura — só aparece quando existem
+// MÚLTIPLOS times independentes trabalhando em paralelo, o que exige um
+// múltiplo do limiar mínimo, não o limiar em si.
+export const DEFAULT_MICRO_FULL_BENEFIT_MULTIPLIER = 2
+
+// ── Produtividade máxima de serverless em equipe muito pequena ───────────────
+// Abaixo de microMinTeam, o fator de produtividade de serverless decai
+// linearmente deste valor (1 dev) até o valor configurado (microMinTeam devs),
+// na direção oposta ao ajuste de microsserviços.
+// Fundamentação: a proposta de valor central do serverless é eliminar a
+// necessidade de operação/infraestrutura dedicada (sem servidores para
+// gerenciar, sem capacity planning, scaling automático). Esse benefício vale
+// proporcionalmente mais quando a equipe é tão pequena que não há ninguém
+// "sobrando" para cuidar de operação — cada hora não gasta em infra é uma
+// hora a mais de output por dev (Roberts & Chapin, "Programming AWS Lambda",
+// 2020).
+export const DEFAULT_SRV_PROD_MAX_SMALL_TEAM = 1.5
+
 // ── Estado inicial da UI ──────────────────────────────────────────────────────
 
 export const DEFAULT_GROWTH_KEY = 'none' as const

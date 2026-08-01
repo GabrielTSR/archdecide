@@ -40,22 +40,44 @@ export function computeBaseEngineeringCost(
 }
 
 /**
- * Escala o fator de produtividade de microsserviços pelo tamanho da equipe.
- * Abaixo do limiar (microMinTeam), a produtividade é interpolada linearmente
- * de MICRO_SMALL_TEAM_PENALTY (1 dev) até o valor configurado (microMinTeam devs).
- * Isso reflete que equipes pequenas não têm times independentes suficientes
- * para colher os benefícios de paralelismo da arquitetura (Lei de Conway).
+ * Escala os fatores de produtividade de microsserviços e serverless pelo tamanho da equipe.
+ * Monolito não é afetado (ratio fixo = 1,0).
+ *
+ * Microsserviços: abaixo do limiar de benefício pleno (microMinTeam × microFullBenefitMultiplier),
+ * a produtividade é interpolada linearmente de MICRO_SMALL_TEAM_PENALTY (1 dev) até o valor
+ * configurado. Uma equipe de exatamente microMinTeam pessoas forma só um time stream-aligned
+ * (Skelton & Pais, 2019); o ganho de paralelismo de microsserviços só se realiza com múltiplos
+ * times independentes, o que exige um múltiplo do limiar (padrão: o dobro).
+ *
+ * Serverless: abaixo de microMinTeam, a produtividade decai linearmente de srvProdMaxSmallTeam
+ * (1 dev) até o valor configurado (microMinTeam devs). A proposta de valor central do serverless
+ * é eliminar a necessidade de operação/infraestrutura dedicada — isso vale proporcionalmente mais
+ * quando não há ninguém "sobrando" na equipe para cuidar disso (Roberts & Chapin, 2020).
  */
-export function applyMicroTeamThreshold(
+export function applyTeamProductivityAdjustments(
   productivityFactor: AppState['productivityFactor'],
   teamComposition: AppState['teamComposition'],
   microMinTeam: number,
+  microFullBenefitMultiplier: number,
+  srvProdMaxSmallTeam: number,
 ): AppState['productivityFactor'] {
   const total = teamComposition.junior + teamComposition.pleno + teamComposition.senior
-  if (total === 0 || total >= microMinTeam) return productivityFactor
-  const t = (total - 1) / Math.max(1, microMinTeam - 1)
-  const effectivePf = MICRO_SMALL_TEAM_PENALTY + t * (productivityFactor.microservices - MICRO_SMALL_TEAM_PENALTY)
-  return { ...productivityFactor, microservices: effectivePf }
+  if (total === 0) return productivityFactor
+
+  const microFullBenefitTeam = microMinTeam * microFullBenefitMultiplier
+  let microEff = productivityFactor.microservices
+  if (total < microFullBenefitTeam) {
+    const t = (total - 1) / Math.max(1, microFullBenefitTeam - 1)
+    microEff = MICRO_SMALL_TEAM_PENALTY + t * (productivityFactor.microservices - MICRO_SMALL_TEAM_PENALTY)
+  }
+
+  let srvEff = productivityFactor.serverless
+  if (total < microMinTeam) {
+    const t = (total - 1) / Math.max(1, microMinTeam - 1)
+    srvEff = srvProdMaxSmallTeam - t * (srvProdMaxSmallTeam - productivityFactor.serverless)
+  }
+
+  return { ...productivityFactor, microservices: microEff, serverless: srvEff }
 }
 
 export function computeAdjustedEngineeringCosts(
@@ -148,7 +170,10 @@ export function runDomain(st: AppState): DomainResult {
   const infraCosts  = computeInfraCosts(st.rps)
   const volume      = deriveVolume(st.rps)
   const baseEngCost = computeBaseEngineeringCost(st.teamComposition, st.costPerDevJunior, st.seniorityFactor)
-  const effectivePf = applyMicroTeamThreshold(st.productivityFactor, st.teamComposition, st.microMinTeam)
+  const effectivePf = applyTeamProductivityAdjustments(
+    st.productivityFactor, st.teamComposition, st.microMinTeam,
+    st.microFullBenefitMultiplier, st.srvProdMaxSmallTeam,
+  )
   const adjEngCosts = computeAdjustedEngineeringCosts(baseEngCost, st.complexityFactor, effectivePf)
   const effectiveRatios = computeEffectiveRatios(st.complexityFactor, effectivePf)
   const totalCosts = Object.fromEntries(
