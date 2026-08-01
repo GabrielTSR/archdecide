@@ -2,7 +2,7 @@ export default function Header() {
   return (
     <div className="hdr">
       <div className="hdr-inner">
-<h1>ArchDecide — Sistema de Apoio à Decisão</h1>
+<h1>ArchDecide: Sistema de Apoio à Decisão</h1>
         <p>
           Modelo multicritério híbrido: custo de infraestrutura baseado em dados reais de nuvem
           + custo de engenharia baseado em modelo paramétrico com composição de equipe mista

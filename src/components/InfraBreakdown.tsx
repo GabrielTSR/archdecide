@@ -26,7 +26,7 @@ export default function InfraBreakdown({ activeTab, onTabChange }: Props) {
   const bdata    = CONFIG.infrastructureBreakdown[activeTab]
 
   const headerText =
-    `${scenInfo.label} — ${scenInfo.rps} req/s · ` +
+    `${scenInfo.label} · ${scenInfo.rps} req/s · ` +
     `${scenInfo.users.toLocaleString('pt-BR')} usuários simult. (contexto) · ` +
     `${fmtVolume(scenInfo.volumeMonth)}/mês`
 

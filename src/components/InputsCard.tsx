@@ -62,7 +62,7 @@ export default function InputsCard({ state, volDisplay, onUpdate }: Props) {
             </button>
           ))}
         </div>
-        <div className="hint">Hipotético — aplicado ao RPS no gráfico de projeção.</div>
+        <div className="hint">Hipotético, aplicado ao RPS no gráfico de projeção.</div>
       </div>
 
       {/* BLOCO 2: Equipe */}

@@ -67,7 +67,7 @@ export default function CostChart({ result }: { result: DomainResult }) {
 
   return (
     <div className="card">
-      <div className="sec-lbl">Custo mensal total — Infraestrutura + Engenharia</div>
+      <div className="sec-lbl">Custo mensal total: Infraestrutura + Engenharia</div>
       <div className="legend">
         {ARCH_KEYS.map(k => (
           <span key={k}>

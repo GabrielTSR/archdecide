@@ -65,7 +65,7 @@ export default function ProjectionChart({ result, state, onUpdate }: Props) {
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.6rem', gap: '.75rem', flexWrap: 'wrap' }}>
         <div className="sec-lbl" style={{ marginBottom: 0 }}>
-          Projeção de custo total — {state.projectionMonths} meses
+          Projeção de custo total ({state.projectionMonths} meses)
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
           <input

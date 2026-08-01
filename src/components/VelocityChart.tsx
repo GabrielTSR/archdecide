@@ -84,7 +84,7 @@ export default function VelocityChart({ result, state }: Props) {
         Velocidade em equivalentes de dev-monolito por mês. O ramp-up é um valor de referência
         calibrável: {state.velocityRampMonths.monolith} mês para monolito,
         {' '}{state.velocityRampMonths.serverless} meses para serverless,
-        {' '}{state.velocityRampMonths.microservices} meses para microsserviços — ajuste no painel
+        {' '}{state.velocityRampMonths.microservices} meses para microsserviços. Ajuste no painel
         &quot;Fatores do Modelo Paramétrico&quot; conforme a experiência prévia da equipe.
         O patamar final usa o ratio efetivo, que aplica a penalidade quando a equipe está abaixo
         do limiar de microsserviços. Se microsserviços aparece abaixo das demais arquiteturas,
