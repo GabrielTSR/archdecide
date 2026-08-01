@@ -2,6 +2,7 @@ import numpy as np
 
 rng = np.random.default_rng(seed=42)
 N = 10_000
+HORIZON_MONTHS = 36
 
 ANCHORS_RPS = np.array([2, 80, 1500])
 ANCHOR_COST = {
@@ -16,17 +17,11 @@ F_COMP = {"monolito": 1.0, "serverless": 1.3, "microsservicos": 2.0}
 F_PROD = {"monolito": 1.0, "serverless": 1.2, "microsservicos": 2.5}
 P_MIN, N_MIN, C_JUNIOR = 0.80, 5, 1200
 
-# Limiar de benefício pleno de microsserviços = N_MIN x este multiplicador.
-# Uma equipe de exatamente N_MIN pessoas forma só um time stream-aligned
-# (Skelton & Pais, 2019); o ganho de paralelismo exige múltiplos times
-# independentes, daí o limiar pleno ser um múltiplo de N_MIN, não N_MIN em si.
-MICRO_FULL_BENEFIT_MULTIPLIER = 2
+MICRO_FULL_BENEFIT_MULTIPLIER = 2   # microsserviços só pleno em 2 x N_min
+F_PROD_SRV_MAX = 1.5                # teto de produtividade do serverless (1 dev)
 
-# Produtividade de serverless para uma equipe de 1 dev. Decai linearmente até
-# F_PROD["serverless"] em N_MIN devs. Eliminar a operação de infraestrutura
-# dedicada vale mais quando não há ninguém "sobrando" na equipe para cuidar
-# disso (Roberts & Chapin, "Programming AWS Lambda", 2020).
-F_PROD_SRV_MAX = 1.5
+# As 4 opções reais de crescimento do site (botões, não slider contínuo)
+GROWTH_OPTIONS = np.array([0.00, 0.10, 0.30, 0.60])
 
 PORTES = {
     "pequeno": {"rps_median": 2,    "rps_gsd": 1.5, "team_range": (1, 4)},
@@ -42,13 +37,6 @@ def sample_rps(porte_cfg, n):
     return rng.lognormal(mean=mu, sigma=sigma, size=n)
 
 
-def sample_users(rps, n):
-    """Deriva usuários simultâneos do RPS, com ruído de ±10%."""
-    ratio = rng.uniform(500, 667, size=n)
-    noise = rng.uniform(0.9, 1.1, size=n)
-    return rps * ratio * noise
-
-
 def sample_team_size(porte_cfg, n):
     """Amostra o tamanho da equipe (uniforme discreta) por faixa de porte."""
     low, high = porte_cfg["team_range"]
@@ -60,6 +48,11 @@ def sample_read_fraction(n):
     return rng.uniform(0.60, 0.90, size=n)
 
 
+def sample_growth_rate(n):
+    """Sorteia uma das 4 opções reais de crescimento anual do site (uniforme entre as 4)."""
+    return rng.choice(GROWTH_OPTIONS, size=n)
+
+
 def sample_team_cost(team_sizes):
     """Para cada simulação, sorteia a senioridade de cada dev e soma o custo."""
     probs, levels = [0.25, 0.30, 0.45], np.array([1.0, 2.0, 3.5])
@@ -67,6 +60,12 @@ def sample_team_cost(team_sizes):
         np.sum(C_JUNIOR * rng.choice(levels, size=t, p=probs))
         for t in team_sizes
     ])
+
+
+def project_rps(rps_0, growth_rate, months=HORIZON_MONTHS):
+    """Projeta o RPS ao final do horizonte, dado o crescimento anual sorteado."""
+    years = months / 12
+    return rps_0 * (1 + growth_rate) ** years
 
 
 def infra_cost_base(rps, arch):
@@ -85,14 +84,10 @@ def read_write_multiplier(read_frac, arch):
 
 
 def productivity_effective(team_size, arch):
-    """Fator de produtividade efetivo por arquitetura, ajustado pelo tamanho da
-    equipe (form. 4). Monolito não é afetado (ratio fixo = 1,0).
+    """Fator de produtividade efetivo por arquitetura, ajustado pelo tamanho da equipe.
 
-    Microsserviços: abaixo de N_MIN x MICRO_FULL_BENEFIT_MULTIPLIER, interpola
-    linearmente de P_MIN (1 dev) até F_PROD (no limiar pleno).
-
-    Serverless: abaixo de N_MIN, decai linearmente de F_PROD_SRV_MAX (1 dev)
-    até F_PROD (em N_MIN devs) — direção oposta à de microsserviços.
+    Monolito: fixo. Microsserviços: pleno só a partir de 2 x N_min.
+    Serverless: bônus decrescente abaixo de N_min.
     """
     if arch == "monolito":
         return F_PROD[arch]
@@ -114,15 +109,16 @@ def productivity_effective(team_size, arch):
 
 
 def engineering_cost(c_base, team_sizes, arch):
-    """Custo de engenharia: C_base × ratio (form. 2), com produtividade efetiva por arquitetura."""
+    """C_eng permanece constante ao longo do horizonte (equipe estável)."""
     f_eff = np.array([productivity_effective(t, arch) for t in team_sizes])
     ratio = F_COMP[arch] / f_eff
     return c_base * ratio, ratio
 
 
-def total_cost(rps, read_frac, c_base, team_sizes, arch):
-    """Custo total projetado: CT = C_infra + C_eng (form. 1)."""
-    c_infra = infra_cost_base(rps, arch) * read_write_multiplier(read_frac, arch)
+def total_cost_horizon(rps_0, growth_rate, read_frac, c_base, team_sizes, arch):
+    """CT ao final do horizonte de 36 meses: C_infra projetado pelo RPS futuro + C_eng constante."""
+    rps_final = project_rps(rps_0, growth_rate)
+    c_infra = infra_cost_base(rps_final, arch) * read_write_multiplier(read_frac, arch)
     c_eng, ratio = engineering_cost(c_base, team_sizes, arch)
     return c_infra + c_eng, c_infra, c_eng
 
@@ -132,8 +128,9 @@ def run_porte_simulation(porte_cfg, n):
     rps = sample_rps(porte_cfg, n)
     team_sizes = sample_team_size(porte_cfg, n)
     read_frac = sample_read_fraction(n)
+    growth_rate = sample_growth_rate(n)
     c_base = sample_team_cost(team_sizes)
-    return rps, team_sizes, read_frac, c_base
+    return rps, team_sizes, read_frac, growth_rate, c_base
 
 
 def summarize_architecture(ct_values):
@@ -148,8 +145,8 @@ def run_all_portes():
     archs = ["monolito", "microsservicos", "serverless"]
     all_results = {}
     for porte, cfg in PORTES.items():
-        rps, team, read_frac, c_base = run_porte_simulation(cfg, N)
-        cts = {a: total_cost(rps, read_frac, c_base, team, a)[0] for a in archs}
+        rps, team, read_frac, growth, c_base = run_porte_simulation(cfg, N)
+        cts = {a: total_cost_horizon(rps, growth, read_frac, c_base, team, a)[0] for a in archs}
         all_results[porte] = cts
     return all_results
 
