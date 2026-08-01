@@ -120,7 +120,7 @@ Interpolação log-linear para RPS intermediário:
             nos controles da seção "Fatores do Modelo Paramétrico".
           </div>
 
-          <p style={{ fontWeight: 600, marginBottom: '.4rem' }}>Passo 1 — base da equipe</p>
+          <p style={{ fontWeight: 600, marginBottom: '.4rem' }}>Passo 1: base da equipe</p>
           <pre className="formula">{`Base = Σ por nível [ quantidade × custo_júnior × fator_senioridade ]
 
   Fatores padrão (mercado brasileiro 2025):
@@ -128,31 +128,46 @@ Interpolação log-linear para RPS intermediário:
     Pleno:   2,0  (custo ~$2.400/mês, salário CLT ~R$8.400)
     Sênior:  3,5  (custo ~$4.200/mês, salário CLT ~R$14.700)`}</pre>
 
-          <p style={{ fontWeight: 600, margin: '.75rem 0 .4rem' }}>Passo 2 — limiar de equipe para microsserviços</p>
-          <pre className="formula">{`Abaixo do limiar configurado (padrão: 5 devs), o fator de produtividade
-de microsserviços é reduzido linearmente de 0,80 (1 dev) até o valor
-configurado (no limiar). Isso reflete o overhead real de um time pequeno
-gerenciando múltiplos serviços, pipelines e infraestrutura distribuída.
+          <p style={{ fontWeight: 600, margin: '.75rem 0 .4rem' }}>Passo 2: ajuste de produtividade pelo tamanho da equipe</p>
+          <pre className="formula">{`Monolito não é afetado (ratio fixo = 1,0). Microsserviços e serverless
+reagem ao tamanho da equipe em direções opostas:
 
-  Exemplo: 2 devs, limiar 5:
-    t = (2 − 1) / (5 − 1) = 0,25
-    pf efetivo = 0,80 + 0,25 × (2,10 − 0,80) = 1,125`}</pre>
+  Microsserviços: abaixo de N_min × multiplicador (padrão: 5 × 2 = 10 devs),
+  o fator de produtividade é reduzido linearmente de 0,80 (1 dev) até o valor
+  configurado (10 devs). Uma equipe de exatamente N_min pessoas forma só UM
+  time stream-aligned (Skelton & Pais, 2019), e o ganho de paralelismo exige
+  MÚLTIPLOS times independentes, daí o limiar de benefício pleno ser um
+  múltiplo de N_min, não N_min em si.
 
-          <p style={{ fontWeight: 600, margin: '.75rem 0 .4rem' }}>Passo 3 — ajuste por arquitetura</p>
+    Exemplo: 2 devs, limiar pleno 10:
+      t = (2 − 1) / (10 − 1) = 0,111
+      pf efetivo = 0,80 + 0,111 × (2,50 − 0,80) = 0,989
+
+  Serverless: abaixo de N_min (padrão: 5 devs), o fator de produtividade
+  decai linearmente de um valor máximo (padrão: 1,5, para 1 dev) até o valor
+  configurado (5 devs). Eliminar a necessidade de operação dedicada de infra
+  vale proporcionalmente mais quando não há ninguém "sobrando" na equipe
+  para cuidar disso (Roberts & Chapin, 2020).
+
+    Exemplo: 2 devs, limiar 5:
+      t = (2 − 1) / (5 − 1) = 0,25
+      pf efetivo = 1,50 − 0,25 × (1,50 − 1,20) = 1,425`}</pre>
+
+          <p style={{ fontWeight: 600, margin: '.75rem 0 .4rem' }}>Passo 3: ajuste por arquitetura</p>
           <pre className="formula">{`Engenharia[arq] = Base × (complexidade[arq] / produtividade[arq])
 
-  Fatores padrão:
+  Fatores padrão (equipe grande o bastante para não sofrer ajuste de tamanho):
     Monolito:       complexidade 1,0  /  produtividade 1,0  =  ratio 1,000
-    Serverless:     complexidade 1,3  /  produtividade 1,2  =  ratio 1,083
-    Microsserviços: complexidade 2,0  /  produtividade 2,5  =  ratio 0,800 (acima do limiar)
+    Serverless:     complexidade 1,3  /  produtividade 1,2  =  ratio 1,083 (equipe ≥ 5)
+    Microsserviços: complexidade 2,0  /  produtividade 2,5  =  ratio 0,800 (equipe ≥ 10)
 
   ratio < 1,0: arquitetura mais barata em engenharia que o monolito
   ratio > 1,0: arquitetura mais cara em engenharia que o monolito
 
   Velocidade de entrega = inverso do ratio efetivo:
     Monolito:       1 / 1,000 = 1,00 dev-eq/mês por dev
-    Serverless:     1 / 1,083 = 0,92 dev-eq/mês por dev
-    Microsserviços: 1 / 0,800 = 1,25 dev-eq/mês por dev (acima do limiar)`}</pre>
+    Serverless:     1 / 1,083 = 0,92 dev-eq/mês por dev (equipe ≥ 5)
+    Microsserviços: 1 / 0,800 = 1,25 dev-eq/mês por dev (equipe ≥ 10)`}</pre>
         </>
       ),
     },
@@ -176,7 +191,7 @@ gerenciando múltiplos serviços, pipelines e infraestrutura distribuída.
                   className="btn-reset"
                   style={{ marginLeft: 'auto', marginBottom: 0 }}
                   onClick={() => {
-                    onApply({ rps: 2, teamComposition: { junior: 2, pleno: 0, senior: 0 } })
+                    onApply({ rps: 2, teamComposition: { junior: 5, pleno: 0, senior: 0 } })
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
                 >
@@ -185,31 +200,33 @@ gerenciando múltiplos serviços, pipelines e infraestrutura distribuída.
               )}
             </div>
             <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
-              Startup em fase inicial com dois desenvolvedores juniores e tráfego mínimo.
-              Com 2 devs abaixo do limiar de 5, o fator de produtividade efetivo de microsserviços
-              cai para 1,125, tornando-o significativamente mais caro. O monolito entrega o menor
-              custo com a menor complexidade operacional.
+              Startup com cinco desenvolvedores juniores e tráfego mínimo. Equipe grande demais para o
+              bônus de equipe enxuta do serverless (que só vale para times de 1 a 4 pessoas) e
+              longe demais do limiar de benefício pleno de microsserviços (10 devs). Nessa faixa
+              intermediária, o monolito é o mais barato tanto em infraestrutura quanto em engenharia.
             </p>
             <pre className="formula">{`Inputs utilizados:
   RPS: 2  (âncora pequeno porte)
-  Equipe: 2 juniores
+  Equipe: 5 juniores
   Custo por dev júnior: $1.200/mês
   Fator de senioridade: júnior = 1,0
-  Limiar de equipe para micro: 5 devs
+  Limiar de equipe (N_min): 5 devs  |  benefício pleno micro: 10 devs
   Fatores de complexidade: mono 1,0  /  srv 1,3  /  micro 2,0
   Fatores de produtividade: mono 1,0  /  srv 1,2  /  micro 2,5
 
 Cálculo:
-  Base da equipe = 2 × $1.200 × 1,0 = $2.400/mês
-  Produtividade efetiva (micro): t=(2−1)/(5−1)=0,25
-                                 pf = 0,80 + 0,25×(2,5−0,80) = 1,225
-                                 ratio = 2,0 / 1,225 = 1,633
+  Base da equipe = 5 × $1.200 × 1,0 = $6.000/mês
+  Produtividade efetiva (srv): 5 devs >= N_min 5, pf = 1,20 integral
+                                ratio = 1,3 / 1,20 = 1,083
+  Produtividade efetiva (micro): t=(5−1)/(10−1)=0,444
+                                 pf = 0,80 + 0,444×(2,5−0,80) = 1,556
+                                 ratio = 2,0 / 1,556 = 1,286
 
   Arquitetura       Infra             Engenharia       Total/mês
   ──────────────────────────────────────────────────────────────
-  Monolito        $    108   +   $  2.400   =   $  2.508   << MENOR CUSTO
-  Serverless      $     15   +   $  2.600   =   $  2.615
-  Microsserviços  $    489   +   $  3.919   =   $  4.408   [ratio efetivo 1,633]`}</pre>
+  Monolito        $    108   +   $  6.000   =   $  6.108   << MENOR CUSTO
+  Serverless      $     15   +   $  6.500   =   $  6.515   [ratio efetivo 1,083]
+  Microsserviços  $    489   +   $  7.714   =   $  8.203   [ratio efetivo 1,286]`}</pre>
           </div>
 
           {/* Cenário 2: Serverless */}
@@ -231,40 +248,43 @@ Cálculo:
               )}
             </div>
             <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
-              Startup com 3 plenos e tráfego médio consolidado. A economia de infraestrutura
-              do serverless ($1.013/mês) supera o overhead de engenharia ($600/mês), resultando
-              no menor custo total dentro do modelo.
+              Startup com 3 plenos e tráfego médio consolidado. Com uma equipe pequena (abaixo do
+              limiar de 5), o serverless recebe um bônus de produtividade (pf efetivo 1,35 em vez
+              de 1,20). Eliminar a operação de infraestrutura vale mais quando não há ninguém
+              sobrando na equipe para cuidar disso. Combinado à infraestrutura mais barata, o
+              serverless entrega o menor custo total com folga.
             </p>
             <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
-              <strong>Limitação importante:</strong> este modelo usa RPS fixo, o que subestima
-              a vantagem real do serverless. Na prática, serverless é escolhido principalmente
+              <strong>Limitação importante:</strong> este modelo usa RPS fixo, o que ainda pode
+              subestimar a vantagem real do serverless. Na prática, serverless é escolhido também
               por tráfego variável ou sazonal: sistemas com picos pontuais e tráfego próximo
               de zero fora do horário de negócio pagam apenas pelo que consomem, enquanto o
-              monolito mantém instâncias ociosas. Essa economia não aparece no modelo, que
-              compara custos com carga constante. Além disso, a eliminação de overhead operacional
-              (sem Kubernetes, sem DevOps dedicado) é um argumento frequente no mercado que
-              também está fora do espaço modelado.
+              monolito mantém instâncias ociosas. Essa economia adicional não aparece no modelo,
+              que compara custos com carga constante.
             </p>
             <pre className="formula">{`Inputs utilizados:
   RPS: 80  (âncora médio porte)
   Equipe: 3 plenos
   Custo por dev júnior: $1.200/mês
   Fator de senioridade: pleno = 2,0
-  Limiar de equipe para micro: 5 devs
+  Limiar de equipe (N_min): 5 devs  |  produtividade máx. serverless: 1,50
   Fatores de complexidade: mono 1,0  /  srv 1,3  /  micro 2,0
   Fatores de produtividade: mono 1,0  /  srv 1,2  /  micro 2,5
 
 Cálculo:
   Base da equipe = 3 × $1.200 × 2,0 = $7.200/mês
-  Produtividade efetiva (micro): t=(3−1)/(5−1)=0,50
-                                 pf = 0,80 + 0,50×(2,5−0,80) = 1,650
-                                 ratio = 2,0 / 1,650 = 1,212
+  Produtividade efetiva (srv): t=(3−1)/(5−1)=0,50
+                                pf = 1,50 − 0,50×(1,50−1,20) = 1,350
+                                ratio = 1,3 / 1,350 = 0,963
+  Produtividade efetiva (micro): t=(3−1)/(10−1)=0,222
+                                 pf = 0,80 + 0,222×(2,5−0,80) = 1,178
+                                 ratio = 2,0 / 1,178 = 1,698
 
   Arquitetura       Infra             Engenharia       Total/mês
   ──────────────────────────────────────────────────────────────
-  Serverless      $    125   +   $  7.800   =   $  7.925   << MENOR CUSTO
+  Serverless      $    125   +   $  6.933   =   $  7.058   << MENOR CUSTO
   Monolito        $  1.138   +   $  7.200   =   $  8.338
-  Microsserviços  $  1.498   +   $  8.727   =   $ 10.225   [ratio efetivo 1,212]`}</pre>
+  Microsserviços  $  1.498   +   $ 12.226   =   $ 13.724   [ratio efetivo 1,698]`}</pre>
           </div>
 
           {/* Cenário 3: Microsserviços */}
@@ -277,7 +297,7 @@ Cálculo:
                   className="btn-reset"
                   style={{ marginLeft: 'auto', marginBottom: 0 }}
                   onClick={() => {
-                    onApply({ rps: 80, teamComposition: { junior: 0, pleno: 8, senior: 0 } })
+                    onApply({ rps: 80, teamComposition: { junior: 0, pleno: 10, senior: 0 } })
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
                 >
@@ -286,31 +306,34 @@ Cálculo:
               )}
             </div>
             <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
-              Empresa em crescimento com 8 desenvolvedores plenos, acima do limiar de 5.
-              Times stream-aligned por domínio (Skelton & Pais, "Team Topologies") reduzem
-              o custo efetivo de engenharia em 20%. Com base de $19.200/mês, a economia
-              de engenharia de $3.840/mês supera o prêmio de infraestrutura de $360/mês.
-              Vantagem em velocidade: 10,00 vs 8,00 entregas/mês (25% acima do monolito).
+              Empresa em crescimento com 10 desenvolvedores plenos, o limiar de benefício pleno
+              (2× o limiar mínimo de 5 devs), ponto em que múltiplos times stream-aligned por
+              domínio (Skelton &amp; Pais, &quot;Team Topologies&quot;) já reduzem o custo efetivo de
+              engenharia em 20%. Com base de $24.000/mês, a economia de engenharia de $4.800/mês
+              supera o prêmio de infraestrutura de $360/mês. Vantagem em velocidade: 12,50 vs
+              10,00 entregas/mês (25% acima do monolito).
             </p>
             <pre className="formula">{`Inputs utilizados:
   RPS: 80  (âncora médio porte)
-  Equipe: 8 plenos
+  Equipe: 10 plenos
   Custo por dev júnior: $1.200/mês
   Fator de senioridade: pleno = 2,0
-  Limiar de equipe para micro: 5 devs
+  Limiar de equipe (N_min): 5 devs  |  benefício pleno micro: 10 devs
   Fatores de complexidade: mono 1,0  /  srv 1,3  /  micro 2,0
   Fatores de produtividade: mono 1,0  /  srv 1,2  /  micro 2,5
 
 Cálculo:
-  Base da equipe = 8 × $1.200 × 2,0 = $19.200/mês
-  Produtividade efetiva (micro): 8 devs >= limiar 5, pf = 2,5 integral
+  Base da equipe = 10 × $1.200 × 2,0 = $24.000/mês
+  Produtividade efetiva (micro): 10 devs >= benefício pleno 10, pf = 2,5 integral
                                  ratio = 2,0 / 2,5 = 0,800
+  Produtividade efetiva (srv): 10 devs >= N_min 5, pf = 1,20 integral
+                                ratio = 1,3 / 1,20 = 1,083
 
   Arquitetura       Infra             Engenharia       Total/mês
   ──────────────────────────────────────────────────────────────
-  Microsserviços  $  1.498   +   $ 15.360   =   $ 16.858   << MENOR CUSTO
-  Monolito        $  1.138   +   $ 19.200   =   $ 20.338
-  Serverless      $    125   +   $ 20.800   =   $ 20.925`}</pre>
+  Microsserviços  $  1.498   +   $ 19.200   =   $ 20.698   << MENOR CUSTO
+  Monolito        $  1.138   +   $ 24.000   =   $ 25.138
+  Serverless      $    125   +   $ 26.000   =   $ 26.125   [ratio efetivo 1,083]`}</pre>
           </div>
         </>
       ),
@@ -319,25 +342,38 @@ Cálculo:
       title: '6. O limiar de equipe e por que o tamanho do time é o fator decisivo',
       content: (
         <>
-          <p>O modelo revela que a arquitetura recomendada é mais sensível ao tamanho da equipe do que ao volume de tráfego:</p>
-          <pre className="formula">{`Abaixo do limiar (padrão: 5 devs):
-  O fator de produtividade de microsserviços é interpolado de 0,80 (1 dev)
-  até o valor configurado (no limiar). Microsserviços perde na maioria dos casos.
-  Motivo: times pequenos não formam squads independentes por domínio.
-  Um dev gerenciando 4 serviços tem overhead constante, não ganho de paralelismo.
+          <p>O modelo revela que a arquitetura recomendada é mais sensível ao tamanho da equipe do que ao volume de tráfego: monolito e serverless se favorecem em times pequenos, microsserviços em times grandes.</p>
+          <pre className="formula">{`Equipe muito pequena (1 a ~4 devs, abaixo de N_min):
+  Serverless recebe um BÔNUS de produtividade (até 1,50 para 1 dev, decaindo
+  até o valor configurado em N_min). Eliminar a operação de infraestrutura
+  dedicada vale mais quando não há ninguém "sobrando" na equipe para cuidar
+  disso. Microsserviços, ao mesmo tempo, sofre a maior penalidade (perto de
+  0,80): um dev gerenciando vários serviços tem overhead constante, não
+  ganho de paralelismo.
 
-Acima do limiar:
-  O fator configurado é aplicado integralmente. Microsserviços pode vencer
-  quando a economia de engenharia supera o prêmio de infraestrutura.
-  Isso ocorre em cargas médias com equipes grandes.
+Equipe pequena-média (entre N_min e o limiar de benefício pleno, padrão
+5 a 10 devs):
+  O bônus de serverless já se esgotou (pf volta ao valor configurado em
+  N_min). Microsserviços segue penalizado, pois uma equipe de N_min pessoas
+  forma só UM time stream-aligned, e o ganho de paralelismo exige MÚLTIPLOS
+  times independentes. Nessa faixa o monolito tende a vencer: sem o bônus
+  de equipe enxuta do serverless, nem o paralelismo de microsserviços.
+
+Equipe grande (acima do limiar de benefício pleno, padrão 10 devs):
+  O fator de produtividade de microsserviços configurado é aplicado
+  integralmente. Microsserviços pode vencer quando a economia de engenharia
+  supera o prêmio de infraestrutura, o que ocorre em cargas médias com
+  equipes grandes.
 
 Em cargas muito altas (próximo de 1.500 req/s):
   A infraestrutura de microsserviços escala de forma mais agressiva
   (AKS nodes, Cosmos DB por serviço, Service Bus Premium).
-  O prêmio de infra supera a economia de engenharia mesmo para equipes grandes.
-  Serverless ou monolito tendem a vencer nessa faixa.`}</pre>
+  O prêmio de infra pode superar a economia de engenharia mesmo para
+  equipes grandes. Serverless ou monolito tendem a vencer nessa faixa.`}</pre>
           <p style={{ marginTop: '.75rem' }}>
-            Ajuste o limiar no painel "Fatores do Modelo Paramétrico" e observe a mudança de recomendação.
+            Ajuste o limiar, o multiplicador de benefício pleno de microsserviços e a produtividade
+            máxima de serverless no painel &quot;Fatores do Modelo Paramétrico&quot; e observe a
+            mudança de recomendação.
           </p>
         </>
       ),
@@ -369,14 +405,17 @@ A unidade é "equivalente de dev-monolito por mês":
           </p>
           <p style={{ marginBottom: '.5rem' }}>
             A configuração padrão (1 júnior + 2 plenos = 3 devs) está
-            <strong> abaixo do limiar de 5 devs </strong> para microsserviços. Nessa faixa,
-            o fator de produtividade é reduzido de 0,80 (1 dev) até 2,5 (no limiar).
-            Com 3 devs, o ratio efetivo sobe e a velocidade fica abaixo do monolito.
-            O raciocínio: equipes pequenas gerenciando múltiplos serviços tendem a ter
-            overhead constante sem o ganho de paralelismo de times independentes por domínio.
+            <strong> abaixo do limiar de benefício pleno de 10 devs </strong> para microsserviços
+            (2× o limiar mínimo de 5). Nessa faixa, o fator de produtividade de microsserviços
+            é reduzido de 0,80 (1 dev) até 2,5 (10 devs). Com 3 devs, pf ≈ 1,18, e o ratio
+            efetivo sobe, deixando a velocidade abaixo do monolito. O raciocínio: uma equipe de
+            até N_min pessoas forma só um time, sem os múltiplos times independentes que geram
+            o ganho de paralelismo. Serverless, na mesma equipe de 3 devs (abaixo de N_min = 5),
+            recebe o efeito oposto: pf sobe de 1,20 para ≈ 1,35, já que eliminar a operação de
+            infraestrutura vale mais numa equipe enxuta.
           </p>
           <p>
-            Aumentando a equipe para 8 plenos (acima do limiar), microsserviços passa a
+            Aumentando a equipe para 10 plenos (no limiar de benefício pleno), microsserviços passa a
             ter velocidade maior que o monolito conforme o fator de produtividade configurado.
             Aplique o cenário 5.3 acima para verificar. O ramp-up de {'{'}9{'}'} meses
             (valor padrão ajustável) modela o tempo de setup inicial, não o regime permanente.
@@ -390,7 +429,7 @@ A unidade é "equivalente de dev-monolito por mês":
         <>
           <p style={{ marginBottom: '.5rem' }}>
             Os fatores de complexidade, produtividade, limiar de equipe e curva de ramp-up
-            não têm valores universais — dependem do contexto, da equipe e da organização.
+            não têm valores universais: dependem do contexto, da equipe e da organização.
             Os valores de referência deste modelo são estimativas informadas pelas obras abaixo,
             mas devem ser tratados como ponto de partida para calibração, não como verdades estabelecidas:
           </p>
@@ -421,7 +460,9 @@ A unidade é "equivalente de dev-monolito por mês":
             <div>
               <strong>Skelton, M., Pais, M. (2019)</strong> &quot;Team Topologies&quot;,
               IT Revolution Press. Define stream-aligned teams (5 a 9 pessoas por fluxo de valor).
-              Base do limiar mínimo de 5 desenvolvedores para microsserviços.
+              Base do limiar mínimo de 5 desenvolvedores para microsserviços e, por extensão, do
+              limiar de benefício pleno (múltiplo do limiar mínimo, já que múltiplos times
+              independentes são necessários para o ganho de paralelismo).
             </div>
             <div>
               <strong>Soldani, J., Tamburri, D. A., Heuvel, W. (2018)</strong> &quot;The Pains
@@ -440,8 +481,11 @@ A unidade é "equivalente de dev-monolito por mês":
             <div>
               <strong>Roberts, M., Chapin, J. (2020)</strong> &quot;Programming AWS Lambda&quot;,
               O&apos;Reilly. Discussão prática de cold start, debug distribuído e limites de plano
-              em serverless. Referência qualitativa para o overhead de serverless; o fator de
-              complexidade e o ramp-up são calibráveis no modelo.
+              em serverless, além do argumento central da proposta de valor serverless: eliminar a
+              necessidade de operação/infraestrutura dedicada. Referência qualitativa tanto para o
+              fator de complexidade quanto para o bônus de produtividade em equipes pequenas.
+              O benefício de não operar infraestrutura vale mais quando a equipe é enxuta demais para
+              ter alguém dedicado a isso. Os valores exatos são calibráveis no modelo.
             </div>
             <div>
               <strong>Newman, S. (2021)</strong> &quot;Building Microservices&quot;, 2nd ed.,
@@ -451,13 +495,16 @@ A unidade é "equivalente de dev-monolito por mês":
           </div>
           <pre className="formula" style={{ marginTop: '.75rem' }}>{`Valores de referência iniciais (todos ajustáveis nos controles do modelo):
 
-  complexityFactor:               productivityFactor:
+  complexityFactor:               productivityFactor (equipe grande):
     Monolito       : 1,0            Monolito       : 1,0
-    Serverless     : 1,3            Serverless     : 1,2
-    Microsserviços : 2,0            Microsserviços : 2,5  (acima do limiar)
+    Serverless     : 1,3            Serverless     : 1,2  (equipe >= N_min)
+    Microsserviços : 2,0            Microsserviços : 2,5  (equipe >= benefício pleno)
 
-  Limiar de equipe para microsserviços: 5 devs
-  Piso de produtividade (1 dev solo):   0,80
+  Ajuste de produtividade pelo tamanho da equipe (monolito não é afetado):
+    Limiar mínimo de equipe (N_min):                     5 devs
+    Multiplicador p/ benefício pleno de microsserviços:  2×  (= 10 devs)
+    Piso de produtividade de microsserviços (1 dev solo): 0,80
+    Teto de produtividade de serverless (1 dev solo):     1,50
 
   Ramp-up calibrável (estimativa de meses até velocidade plena):
     Monolito       :  1  (ajuste de 1 a 24 meses)
