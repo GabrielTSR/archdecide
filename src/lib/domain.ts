@@ -115,14 +115,12 @@ export function projectTotalCosts(
   months: number,
 ): Record<ArchKey, number>[] {
   const rate = monthlyRate(annualRate)
+  const engCosts = computeAdjustedEngineeringCosts(baseEngCost, complexityFactor, productivityFactor)
   return Array.from({ length: months }, (_, m) => {
     const projRps = rpsInicial * Math.pow(1 + rate, m)
+    const infraCosts = computeInfraCosts(projRps)
     return Object.fromEntries(
-      ARCH_KEYS.map(arch => [
-        arch,
-        Math.round(logInterpolate(projRps, CONFIG.costAnchors[arch]))
-          + Math.round(baseEngCost * complexityFactor[arch] / productivityFactor[arch]),
-      ])
+      ARCH_KEYS.map(arch => [arch, infraCosts[arch] + engCosts[arch]])
     ) as Record<ArchKey, number>
   })
 }
