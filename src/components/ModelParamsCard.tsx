@@ -1,13 +1,44 @@
 'use client'
 
 import type { AppState, ArchKey } from '@/lib/types'
-import { ARCH_KEYS } from '@/lib/config'
+import { ARCH_KEYS, CONFIG } from '@/lib/config'
 
 interface Props {
   state: AppState
   onUpdate: (patch: Partial<AppState>) => void
   onReset: () => void
 }
+
+interface SliderRowProps {
+  label: string
+  value: number
+  min: number
+  max: number
+  step: number
+  disabled?: boolean
+  onChange: (value: number) => void
+  formatValue: (value: number) => string
+}
+
+function SliderRow({ label, value, min, max, step, disabled, onChange, formatValue }: SliderRowProps) {
+  return (
+    <div className="param-row">
+      <span className="param-lbl">{label}</span>
+      <input
+        type="range"
+        min={min} max={max} step={step}
+        value={value}
+        disabled={disabled}
+        onChange={e => onChange(parseFloat(e.target.value))}
+      />
+      <span className="param-val">{formatValue(value)}</span>
+    </div>
+  )
+}
+
+const archLabel = (arch: ArchKey) => CONFIG.architectures[arch].label
+const asMultiplier = (v: number) => `${v.toFixed(1)}×`
+const RAMP_ORDER: ArchKey[] = ['monolith', 'serverless', 'microservices']
 
 export default function ModelParamsCard({ state, onUpdate, onReset }: Props) {
   return (
@@ -35,19 +66,15 @@ export default function ModelParamsCard({ state, onUpdate, onReset }: Props) {
             { level: 'pleno'  as const, label: 'Pleno',   disabled: false },
             { level: 'senior' as const, label: 'Sênior',  disabled: false },
           ]).map(({ level, label, disabled }) => (
-            <div className="param-row" key={level}>
-              <span className="param-lbl">{label}</span>
-              <input
-                type="range"
-                min="0.5" max="3.0" step="0.05"
-                value={state.seniorityFactor[level]}
-                disabled={disabled}
-                onChange={e => onUpdate({
-                  seniorityFactor: { ...state.seniorityFactor, [level]: parseFloat(e.target.value) }
-                })}
-              />
-              <span className="param-val">{state.seniorityFactor[level].toFixed(2)}×</span>
-            </div>
+            <SliderRow
+              key={level}
+              label={label}
+              min={0.5} max={3.0} step={0.05}
+              value={state.seniorityFactor[level]}
+              disabled={disabled}
+              onChange={v => onUpdate({ seniorityFactor: { ...state.seniorityFactor, [level]: v } })}
+              formatValue={v => v.toFixed(2) + '×'}
+            />
           ))}
         </div>
 
@@ -58,18 +85,14 @@ export default function ModelParamsCard({ state, onUpdate, onReset }: Props) {
             Quanto mais complexa a arquitetura, maior o esforço de engenharia por dev. Monolito = 1,0 (linha de base absoluta).
           </p>
           {ARCH_KEYS.map(arch => (
-            <div className="param-row" key={arch}>
-              <span className="param-lbl">{arch === 'monolith' ? 'Monolito' : arch === 'serverless' ? 'Serverless' : 'Microsserviços'}</span>
-              <input
-                type="range"
-                min="0.5" max="5.0" step="0.1"
-                value={state.complexityFactor[arch]}
-                onChange={e => onUpdate({
-                  complexityFactor: { ...state.complexityFactor, [arch]: parseFloat(e.target.value) }
-                })}
-              />
-              <span className="param-val">{state.complexityFactor[arch].toFixed(1)}×</span>
-            </div>
+            <SliderRow
+              key={arch}
+              label={archLabel(arch)}
+              min={0.5} max={5.0} step={0.1}
+              value={state.complexityFactor[arch]}
+              onChange={v => onUpdate({ complexityFactor: { ...state.complexityFactor, [arch]: v } })}
+              formatValue={asMultiplier}
+            />
           ))}
         </div>
 
@@ -80,18 +103,14 @@ export default function ModelParamsCard({ state, onUpdate, onReset }: Props) {
             Divide o custo de engenharia. Arquiteturas que permitem paralelismo de equipe entregam mais por dev. Monolito = 1,0.
           </p>
           {ARCH_KEYS.map(arch => (
-            <div className="param-row" key={arch}>
-              <span className="param-lbl">{arch === 'monolith' ? 'Monolito' : arch === 'serverless' ? 'Serverless' : 'Microsserviços'}</span>
-              <input
-                type="range"
-                min="0.5" max="5.0" step="0.1"
-                value={state.productivityFactor[arch]}
-                onChange={e => onUpdate({
-                  productivityFactor: { ...state.productivityFactor, [arch]: parseFloat(e.target.value) }
-                })}
-              />
-              <span className="param-val">{state.productivityFactor[arch].toFixed(1)}×</span>
-            </div>
+            <SliderRow
+              key={arch}
+              label={archLabel(arch)}
+              min={0.5} max={5.0} step={0.1}
+              value={state.productivityFactor[arch]}
+              onChange={v => onUpdate({ productivityFactor: { ...state.productivityFactor, [arch]: v } })}
+              formatValue={asMultiplier}
+            />
           ))}
         </div>
 
@@ -106,50 +125,39 @@ export default function ModelParamsCard({ state, onUpdate, onReset }: Props) {
           serverless <strong>ganha</strong> produtividade (menos infra dedicada para administrar por dev).
           Acima dele, o fator de produtividade de serverless configurado é aplicado integralmente.
         </p>
-        <div className="param-row">
-          <span className="param-lbl">Limiar (N_min)</span>
-          <input
-            type="range"
-            min="2" max="15" step="1"
-            value={state.microMinTeam}
-            onChange={e => onUpdate({ microMinTeam: parseInt(e.target.value) })}
-          />
-          <span className="param-val">{state.microMinTeam} devs</span>
-        </div>
+        <SliderRow
+          label="Limiar (N_min)"
+          min={2} max={15} step={1}
+          value={state.microMinTeam}
+          onChange={v => onUpdate({ microMinTeam: v })}
+          formatValue={v => `${v} devs`}
+        />
 
         <p className="hint" style={{ margin: '.75rem 0' }}>
           Microsserviços só entrega o fator de produtividade configurado integralmente quando a equipe
           atinge um múltiplo do limiar acima: uma equipe de exatamente N_min pessoas forma só um time,
           e o ganho de paralelismo exige times independentes múltiplos.
         </p>
-        <div className="param-row">
-          <span className="param-lbl">Múltiplo p/ benefício pleno</span>
-          <input
-            type="range"
-            min="1" max="4" step="0.5"
-            value={state.microFullBenefitMultiplier}
-            onChange={e => onUpdate({ microFullBenefitMultiplier: parseFloat(e.target.value) })}
-          />
-          <span className="param-val">
-            {state.microFullBenefitMultiplier.toFixed(1)}× ({Math.round(state.microMinTeam * state.microFullBenefitMultiplier)} devs)
-          </span>
-        </div>
+        <SliderRow
+          label="Múltiplo p/ benefício pleno"
+          min={1} max={4} step={0.5}
+          value={state.microFullBenefitMultiplier}
+          onChange={v => onUpdate({ microFullBenefitMultiplier: v })}
+          formatValue={v => `${v.toFixed(1)}× (${Math.round(state.microMinTeam * v)} devs)`}
+        />
 
         <p className="hint" style={{ margin: '.75rem 0' }}>
           Produtividade de serverless para uma equipe de 1 dev (decai linearmente até o valor configurado
           no limiar N_min). Reflete que eliminar a operação de infraestrutura vale mais quando não há
           ninguém "sobrando" na equipe para cuidar disso (Roberts &amp; Chapin, 2020).
         </p>
-        <div className="param-row">
-          <span className="param-lbl">Produtividade máx. serverless</span>
-          <input
-            type="range"
-            min="1.2" max="3.0" step="0.1"
-            value={state.srvProdMaxSmallTeam}
-            onChange={e => onUpdate({ srvProdMaxSmallTeam: parseFloat(e.target.value) })}
-          />
-          <span className="param-val">{state.srvProdMaxSmallTeam.toFixed(1)}×</span>
-        </div>
+        <SliderRow
+          label="Produtividade máx. serverless"
+          min={1.2} max={3.0} step={0.1}
+          value={state.srvProdMaxSmallTeam}
+          onChange={v => onUpdate({ srvProdMaxSmallTeam: v })}
+          formatValue={asMultiplier}
+        />
       </div>
 
       {/* Tempo de ramp-up de velocidade */}
@@ -159,23 +167,15 @@ export default function ModelParamsCard({ state, onUpdate, onReset }: Props) {
           Estimativa de quantos meses a equipe leva para atingir produtividade plena em cada arquitetura.
           Valor de referência inicial; ajuste conforme a experiência prévia da equipe com cada estilo.
         </p>
-        {([
-          { arch: 'monolith'      as ArchKey, label: 'Monolito'       },
-          { arch: 'serverless'    as ArchKey, label: 'Serverless'     },
-          { arch: 'microservices' as ArchKey, label: 'Microsserviços' },
-        ]).map(({ arch, label }) => (
-          <div className="param-row" key={arch}>
-            <span className="param-lbl">{label}</span>
-            <input
-              type="range"
-              min="1" max="24" step="1"
-              value={state.velocityRampMonths[arch]}
-              onChange={e => onUpdate({
-                velocityRampMonths: { ...state.velocityRampMonths, [arch]: parseInt(e.target.value) }
-              })}
-            />
-            <span className="param-val">{state.velocityRampMonths[arch]} m</span>
-          </div>
+        {RAMP_ORDER.map(arch => (
+          <SliderRow
+            key={arch}
+            label={archLabel(arch)}
+            min={1} max={24} step={1}
+            value={state.velocityRampMonths[arch]}
+            onChange={v => onUpdate({ velocityRampMonths: { ...state.velocityRampMonths, [arch]: v } })}
+            formatValue={v => `${v} m`}
+          />
         ))}
       </div>
 
