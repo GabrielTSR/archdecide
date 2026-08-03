@@ -12,6 +12,8 @@
  *                        Lei de Brooks 1975, casos Netflix/Amazon/Spotify)
  */
 
+import type { AppState } from './types'
+
 // ── Equipe ────────────────────────────────────────────────────────────────────
 
 // Mercado brasileiro 2025: salário CLT R$4.000-4.500 + encargos ~60%
@@ -155,4 +157,33 @@ export const VELOCITY_RAMP_MONTHS = {
   monolith:      1,
   serverless:    3,
   microservices: 9,
+}
+
+// ── Fábricas de estado ────────────────────────────────────────────────────────
+// Fonte única dos defaults do modelo paramétrico: usada tanto para montar o
+// estado inicial quanto para "Restaurar valores default" (reset), evitando
+// duas listas de constantes que podem divergir.
+
+export function buildDefaultModelParams() {
+  return {
+    seniorityFactor:    { ...DEFAULT_SENIORITY_FACTOR },
+    complexityFactor:   { ...DEFAULT_COMPLEXITY_FACTOR },
+    productivityFactor: { ...DEFAULT_PRODUCTIVITY_FACTOR },
+    microMinTeam:               DEFAULT_MICRO_MIN_TEAM,
+    microFullBenefitMultiplier: DEFAULT_MICRO_FULL_BENEFIT_MULTIPLIER,
+    srvProdMaxSmallTeam:        DEFAULT_SRV_PROD_MAX_SMALL_TEAM,
+    velocityRampMonths: { ...VELOCITY_RAMP_MONTHS },
+  }
+}
+
+export function buildDefaultState(rps: number): AppState {
+  return {
+    rps,
+    growthKey:        DEFAULT_GROWTH_KEY,
+    breakdownTab:     'small',
+    costPerDevJunior: DEFAULT_COST_PER_DEV_JUNIOR,
+    teamComposition:  { ...DEFAULT_TEAM_COMPOSITION },
+    projectionMonths: DEFAULT_PROJECTION_MONTHS,
+    ...buildDefaultModelParams(),
+  }
 }
