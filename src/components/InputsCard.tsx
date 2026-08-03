@@ -2,7 +2,7 @@
 
 import type { AppState, GrowthKey } from '@/lib/types'
 import { CONFIG } from '@/lib/config'
-import { sliderToRps, fmtBRL } from '@/lib/domain'
+import { sliderToRps, fmtBRL, computeBaseEngineeringCost } from '@/lib/domain'
 
 interface Props {
   state: AppState
@@ -131,9 +131,7 @@ export default function InputsCard({ state, volDisplay, onUpdate }: Props) {
           <span>Total: <span>{teamTotal}</span> devs</span>
           <span className="team-total-val">
             Base mensal: ${fmtBRL(Math.round(
-              state.teamComposition.junior * state.costPerDevJunior * state.seniorityFactor.junior +
-              state.teamComposition.pleno  * state.costPerDevJunior * state.seniorityFactor.pleno  +
-              state.teamComposition.senior * state.costPerDevJunior * state.seniorityFactor.senior
+              computeBaseEngineeringCost(state.teamComposition, state.costPerDevJunior, state.seniorityFactor)
             ))}/mês
           </span>
         </div>

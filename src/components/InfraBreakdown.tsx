@@ -3,7 +3,7 @@
 import { Fragment } from 'react'
 import { CONFIG, ARCH_KEYS } from '@/lib/config'
 import type { BreakdownTab } from '@/lib/types'
-import { fmtBRL } from '@/lib/domain'
+import { fmtBRL, fmtVolume } from '@/lib/domain'
 
 interface Props {
   activeTab: BreakdownTab
@@ -15,11 +15,6 @@ const TABS: { key: BreakdownTab; label: string }[] = [
   { key: 'medium', label: 'Médio porte · 80 req/s'         },
   { key: 'large',  label: 'Grande porte · 1.500 req/s'     },
 ]
-
-function fmtVolume(v: number): string {
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(v >= 10_000_000 ? 0 : 1).replace('.0', '') + 'M req'
-  return Math.round(v / 1_000) + 'k req'
-}
 
 export default function InfraBreakdown({ activeTab, onTabChange }: Props) {
   const scenInfo = CONFIG.scenarios[activeTab]
