@@ -21,6 +21,44 @@ function AccordionEntry({ title, content }: AccordionItem) {
   )
 }
 
+interface ScenarioCardProps {
+  color: string
+  title: string
+  rps: number
+  teamComposition: AppState['teamComposition']
+  description: React.ReactNode
+  formula: string
+  onApply?: (patch: Partial<AppState>) => void
+  marginBottom?: string
+}
+
+/** Um dos "cenários de referência" da seção 5: bolinha + título, botão de
+ * aplicar, descrição e o bloco de fórmula com os números do cenário. */
+function ScenarioCard({ color, title, rps, teamComposition, description, formula, onApply, marginBottom }: ScenarioCardProps) {
+  return (
+    <div style={{ marginBottom: marginBottom ?? '1.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.4rem', flexWrap: 'wrap' }}>
+        <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
+        <span style={{ fontWeight: 700, fontSize: '13px' }}>{title}</span>
+        {onApply && (
+          <button
+            className="btn-reset"
+            style={{ marginLeft: 'auto', marginBottom: 0 }}
+            onClick={() => {
+              onApply({ rps, teamComposition })
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          >
+            ↗ Aplicar cenário
+          </button>
+        )}
+      </div>
+      {description}
+      <pre className="formula">{formula}</pre>
+    </div>
+  )
+}
+
 interface Props {
   onApply?: (patch: Partial<AppState>) => void
 }
@@ -181,31 +219,21 @@ reagem ao tamanho da equipe em direções opostas:
             Os fatores do modelo permanecem como configurados pelo analista.
           </div>
 
-          {/* Cenário 1: Monolito */}
-          <div style={{ marginBottom: '1.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.4rem', flexWrap: 'wrap' }}>
-              <span style={{ display:'inline-block', width:10, height:10, borderRadius:'50%', background:'#185FA5', flexShrink:0 }} />
-              <span style={{ fontWeight: 700, fontSize: '13px' }}>Monolito vence</span>
-              {onApply && (
-                <button
-                  className="btn-reset"
-                  style={{ marginLeft: 'auto', marginBottom: 0 }}
-                  onClick={() => {
-                    onApply({ rps: 2, teamComposition: { junior: 5, pleno: 0, senior: 0 } })
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }}
-                >
-                  ↗ Aplicar cenário
-                </button>
-              )}
-            </div>
-            <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
-              Startup com cinco desenvolvedores juniores e tráfego mínimo. Equipe grande demais para o
-              bônus de equipe enxuta do serverless (que só vale para times de 1 a 4 pessoas) e
-              longe demais do limiar de benefício pleno de microsserviços (10 devs). Nessa faixa
-              intermediária, o monolito é o mais barato tanto em infraestrutura quanto em engenharia.
-            </p>
-            <pre className="formula">{`Inputs utilizados:
+          <ScenarioCard
+            color="#185FA5"
+            title="Monolito vence"
+            rps={2}
+            teamComposition={{ junior: 5, pleno: 0, senior: 0 }}
+            onApply={onApply}
+            description={
+              <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
+                Startup com cinco desenvolvedores juniores e tráfego mínimo. Equipe grande demais para o
+                bônus de equipe enxuta do serverless (que só vale para times de 1 a 4 pessoas) e
+                longe demais do limiar de benefício pleno de microsserviços (10 devs). Nessa faixa
+                intermediária, o monolito é o mais barato tanto em infraestrutura quanto em engenharia.
+              </p>
+            }
+            formula={`Inputs utilizados:
   RPS: 2  (âncora pequeno porte)
   Equipe: 5 juniores
   Custo por dev júnior: $1.200/mês
@@ -226,43 +254,35 @@ Cálculo:
   ──────────────────────────────────────────────────────────────
   Monolito        $    108   +   $  6.000   =   $  6.108   << MENOR CUSTO
   Serverless      $     15   +   $  6.500   =   $  6.515   [ratio efetivo 1,083]
-  Microsserviços  $    489   +   $  7.714   =   $  8.203   [ratio efetivo 1,286]`}</pre>
-          </div>
+  Microsserviços  $    489   +   $  7.714   =   $  8.203   [ratio efetivo 1,286]`}
+          />
 
-          {/* Cenário 2: Serverless */}
-          <div style={{ marginBottom: '1.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.4rem', flexWrap: 'wrap' }}>
-              <span style={{ display:'inline-block', width:10, height:10, borderRadius:'50%', background:'#0F6E56', flexShrink:0 }} />
-              <span style={{ fontWeight: 700, fontSize: '13px' }}>Serverless vence</span>
-              {onApply && (
-                <button
-                  className="btn-reset"
-                  style={{ marginLeft: 'auto', marginBottom: 0 }}
-                  onClick={() => {
-                    onApply({ rps: 80, teamComposition: { junior: 0, pleno: 3, senior: 0 } })
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }}
-                >
-                  ↗ Aplicar cenário
-                </button>
-              )}
-            </div>
-            <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
-              Startup com 3 plenos e tráfego médio consolidado. Com uma equipe pequena (abaixo do
-              limiar de 5), o serverless recebe um bônus de produtividade (pf efetivo 1,35 em vez
-              de 1,20). Eliminar a operação de infraestrutura vale mais quando não há ninguém
-              sobrando na equipe para cuidar disso. Combinado à infraestrutura mais barata, o
-              serverless entrega o menor custo total com folga.
-            </p>
-            <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
-              <strong>Limitação importante:</strong> este modelo usa RPS fixo, o que ainda pode
-              subestimar a vantagem real do serverless. Na prática, serverless é escolhido também
-              por tráfego variável ou sazonal: sistemas com picos pontuais e tráfego próximo
-              de zero fora do horário de negócio pagam apenas pelo que consomem, enquanto o
-              monolito mantém instâncias ociosas. Essa economia adicional não aparece no modelo,
-              que compara custos com carga constante.
-            </p>
-            <pre className="formula">{`Inputs utilizados:
+          <ScenarioCard
+            color="#0F6E56"
+            title="Serverless vence"
+            rps={80}
+            teamComposition={{ junior: 0, pleno: 3, senior: 0 }}
+            onApply={onApply}
+            description={
+              <>
+                <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
+                  Startup com 3 plenos e tráfego médio consolidado. Com uma equipe pequena (abaixo do
+                  limiar de 5), o serverless recebe um bônus de produtividade (pf efetivo 1,35 em vez
+                  de 1,20). Eliminar a operação de infraestrutura vale mais quando não há ninguém
+                  sobrando na equipe para cuidar disso. Combinado à infraestrutura mais barata, o
+                  serverless entrega o menor custo total com folga.
+                </p>
+                <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
+                  <strong>Limitação importante:</strong> este modelo usa RPS fixo, o que ainda pode
+                  subestimar a vantagem real do serverless. Na prática, serverless é escolhido também
+                  por tráfego variável ou sazonal: sistemas com picos pontuais e tráfego próximo
+                  de zero fora do horário de negócio pagam apenas pelo que consomem, enquanto o
+                  monolito mantém instâncias ociosas. Essa economia adicional não aparece no modelo,
+                  que compara custos com carga constante.
+                </p>
+              </>
+            }
+            formula={`Inputs utilizados:
   RPS: 80  (âncora médio porte)
   Equipe: 3 plenos
   Custo por dev júnior: $1.200/mês
@@ -284,36 +304,27 @@ Cálculo:
   ──────────────────────────────────────────────────────────────
   Serverless      $    125   +   $  6.933   =   $  7.058   << MENOR CUSTO
   Monolito        $  1.138   +   $  7.200   =   $  8.338
-  Microsserviços  $  1.498   +   $ 12.226   =   $ 13.724   [ratio efetivo 1,698]`}</pre>
-          </div>
+  Microsserviços  $  1.498   +   $ 12.226   =   $ 13.724   [ratio efetivo 1,698]`}
+          />
 
-          {/* Cenário 3: Microsserviços */}
-          <div style={{ marginBottom: '.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '.4rem', flexWrap: 'wrap' }}>
-              <span style={{ display:'inline-block', width:10, height:10, borderRadius:'50%', background:'#C95230', flexShrink:0 }} />
-              <span style={{ fontWeight: 700, fontSize: '13px' }}>Microsserviços vence</span>
-              {onApply && (
-                <button
-                  className="btn-reset"
-                  style={{ marginLeft: 'auto', marginBottom: 0 }}
-                  onClick={() => {
-                    onApply({ rps: 80, teamComposition: { junior: 0, pleno: 10, senior: 0 } })
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }}
-                >
-                  ↗ Aplicar cenário
-                </button>
-              )}
-            </div>
-            <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
-              Empresa em crescimento com 10 desenvolvedores plenos, o limiar de benefício pleno
-              (2× o limiar mínimo de 5 devs), ponto em que múltiplos times stream-aligned por
-              domínio (Skelton &amp; Pais, &quot;Team Topologies&quot;) já reduzem o custo efetivo de
-              engenharia em 20%. Com base de $24.000/mês, a economia de engenharia de $4.800/mês
-              supera o prêmio de infraestrutura de $360/mês. Vantagem em velocidade: 12,50 vs
-              10,00 entregas/mês (25% acima do monolito).
-            </p>
-            <pre className="formula">{`Inputs utilizados:
+          <ScenarioCard
+            color="#C95230"
+            title="Microsserviços vence"
+            rps={80}
+            teamComposition={{ junior: 0, pleno: 10, senior: 0 }}
+            onApply={onApply}
+            marginBottom=".25rem"
+            description={
+              <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '.5rem', lineHeight: 1.5 }}>
+                Empresa em crescimento com 10 desenvolvedores plenos, o limiar de benefício pleno
+                (2× o limiar mínimo de 5 devs), ponto em que múltiplos times stream-aligned por
+                domínio (Skelton &amp; Pais, &quot;Team Topologies&quot;) já reduzem o custo efetivo de
+                engenharia em 20%. Com base de $24.000/mês, a economia de engenharia de $4.800/mês
+                supera o prêmio de infraestrutura de $360/mês. Vantagem em velocidade: 12,50 vs
+                10,00 entregas/mês (25% acima do monolito).
+              </p>
+            }
+            formula={`Inputs utilizados:
   RPS: 80  (âncora médio porte)
   Equipe: 10 plenos
   Custo por dev júnior: $1.200/mês
@@ -333,8 +344,8 @@ Cálculo:
   ──────────────────────────────────────────────────────────────
   Microsserviços  $  1.498   +   $ 19.200   =   $ 20.698   << MENOR CUSTO
   Monolito        $  1.138   +   $ 24.000   =   $ 25.138
-  Serverless      $    125   +   $ 26.000   =   $ 26.125   [ratio efetivo 1,083]`}</pre>
-          </div>
+  Serverless      $    125   +   $ 26.000   =   $ 26.125   [ratio efetivo 1,083]`}
+          />
         </>
       ),
     },
